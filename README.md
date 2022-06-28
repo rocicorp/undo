@@ -10,7 +10,7 @@ npm install @rocicorp/undo
 
 # Usage
 
-`UNdoManager`
+`UndoManager`
 
 ```ts
 import {UndoManager} from '@rocicorp/undo';
