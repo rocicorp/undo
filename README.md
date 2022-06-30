@@ -1,6 +1,6 @@
 # Undo
 
-A simple undo / redo manager.
+A simple undo / redo manager. This was designed to work well with [Replicache](replicache.dev), but can be used entirely independently. From this library's perspective, undo/redo actions are just functions and this library doesn't care what those functions do. Please use [Replidraw](http://github.com/rocicorp/replidraw) as a reference on how to use the library.
 
 # Installation
 
@@ -8,9 +8,53 @@ A simple undo / redo manager.
 npm install @rocicorp/undo
 ```
 
-# Usage
+# Replicache Usage Example
 
-`UndoManager`
+```tsx
+import { Replicache } from "replicache";
+import { useSubscribe } from "replicache-react";
+...
+import {UndoManager} from '@rocicorp/undo';
+
+// Replicache and UndoManager are initialized outside of the initial component render.
+// undoManager = new UndoManager()
+const App = ({ rep }: { rep: Replicache<M>, undoManager: UndoManager }) => {
+  const todos = useSubscribe(rep, listTodos, [], [rep]);
+
+ // new item with undo
+  const handleNewItem = (text: string) => {
+    const id = nanoid();
+    //function that will redo and execute
+    const putTodo = () => {
+      rep.mutate.putTodo({
+        id,
+        text: text,
+        sort: todos.length > 0 ? todos[todos.length - 1].sort + 1 : 0,
+        completed: false,
+      });
+    };
+
+    //undo function
+    const removeTodo = () => rep.mutate.deleteTodos([id]);
+
+    undoManager.add({
+      execute: putTodo,
+      undo: removeTodo,
+    });
+  };
+
+  return (
+    <div>
+      <Header onNewItem={handleNewItem} />
+      <MainSection
+        todos={todos}
+      />
+    </div>
+  );
+}
+```
+
+# Basic Usage Example
 
 ```ts
 import {UndoManager} from '@rocicorp/undo';
@@ -31,13 +75,13 @@ undoManager.add({
 
 ## <b>constructor</b>
 
-### Constructor for UndoManager
+Constructor for UndoManager
 
 | Param   | Type                             | Description                                 |
 | ------- | -------------------------------- | ------------------------------------------- |
-| options | <code>UnderManagerOptions</code> | options passed for undo manager constructor |
+| options | <code>UnderManagerOptions</code> | Options passed for undo manager constructor |
 
-### UnderManagerOptions
+UnderManagerOptions
 
 | Param    | Type                                                   | Description                                                                       |
 | -------- | ------------------------------------------------------ | --------------------------------------------------------------------------------- |
@@ -56,23 +100,23 @@ undoManager.add({
 
 ## <b>canUndo</b>
 
-### Determines if a user can perform the undo operation on the undoRedo stack.
+Determines if a user can perform the undo operation on the undoRedo stack.
 
 ---
 
 ## <b>canRedo</b>
 
-### Determines if a user can perform the redo operation on the undoRedo stack.
+Determines if a user can perform the redo operation on the undoRedo stack.
 
 ---
 
 ## <b>add</b>
 
-### Adds an entry to the undoRedo stack.
+Adds an entry to the undoRedo stack.
 
-| Param   | Type                    | Description                                                                                                                                                   |
-| ------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| options | <code>AddOptions</code> | The entry to add to the stack. Can be a UndoRedo or ExecuteUndo. object. `ExecuteUndo` will run the `execute` function immediately after adding to the stack. |
+| Param   | Type                    | Description                                                                                                                                                              |
+| ------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| options | <code>AddOptions</code> | A `UndoRedo` or `ExecuteUndo` object that can is added to the stack. If it is an `ExecuteUndo` it will run the `execute` function immediately after adding to the stack. |
 
 ### AddOptions
 
@@ -80,13 +124,13 @@ undoManager.add({
 type AddOptions = UndoRedo | ExecuteUndo;
 
 type UndoRedo = {
-  redo: () => void | MaybePromise<void>;
-  undo: () => void | MaybePromise<void>;
+  redo: () => MaybePromise<void>;
+  undo: () => MaybePromise<void>;
 };
 
 type ExecuteUndo = {
-  execute: () => void | MaybePromise<void>;
-  undo: () => void | MaybePromise<void>;
+  execute: () => MaybePromise<void>;
+  undo: () => MaybePromise<void>;
 };
 ```
 
@@ -94,12 +138,12 @@ type ExecuteUndo = {
 
 ## <b>undo</b>
 
-### execute the undo function of the current entry in the undoRedo stack.
+Executes the undo function of the current entry in the undoRedo stack.
 
 ---
 
 ## <b>redo</b>
 
-### execute the redo function of the current entry in the undoRedo stack.
+Executes the redo function of the current entry in the undoRedo stack.
 
 ---
