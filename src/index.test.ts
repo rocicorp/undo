@@ -85,3 +85,43 @@ test('add / redo / undo', () => {
   expect(undoManager.canRedo).to.be.true;
   expect(onChangeSpy.callCount).to.be.equal(8);
 });
+
+test('grouping undo /redo', () => {
+  // reset stack to start
+  undoManager.undo();
+  undoManager.undo();
+  expect(undoManager.canUndo).to.be.false;
+  expect(undoManager.canRedo).to.be.true;
+  //reset modified Value
+  modifiedValue = 0;
+  undoManager.add(OneRemoveOneExecute);
+  expect(modifiedValue).to.be.equal(1);
+  expect(undoManager.canUndo).to.be.true;
+  expect(undoManager.canRedo).to.be.false;
+
+  undoManager.startGroup();
+  undoManager.add(OneRemoveOneExecute);
+  undoManager.add(OneRemoveOneExecute);
+  undoManager.add(OneRemoveOneExecute);
+  undoManager.add(OneRemoveOneExecute);
+  undoManager.endGroup();
+  expect(modifiedValue).to.be.equal(5);
+  expect(undoManager.canUndo).to.be.true;
+  expect(undoManager.canRedo).to.be.false;
+  undoManager.undo();
+  expect(modifiedValue).to.be.equal(1);
+  expect(undoManager.canUndo).to.be.true;
+  expect(undoManager.canRedo).to.be.true;
+  undoManager.undo();
+  expect(modifiedValue).to.be.equal(0);
+  expect(undoManager.canUndo).to.be.false;
+  expect(undoManager.canRedo).to.be.true;
+  undoManager.redo();
+  expect(modifiedValue).to.be.equal(1);
+  expect(undoManager.canUndo).to.be.true;
+  expect(undoManager.canRedo).to.be.true;
+  undoManager.redo();
+  expect(modifiedValue).to.be.equal(5);
+  expect(undoManager.canUndo).to.be.true;
+  expect(undoManager.canRedo).to.be.false;
+});
