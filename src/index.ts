@@ -4,6 +4,7 @@ export type MaybePromise<T> = T | Promise<T>;
  * the object stored in the undoRedo stack
  */
 type Entry = {
+  isGroup: boolean;
   redo: () => MaybePromise<void>;
   undo: () => MaybePromise<void>;
 };
@@ -21,7 +22,10 @@ export type ExecuteUndo = {
 /**
  * A type of object that can be added to the undoRedo stack.
  */
-export type UndoRedo = Entry;
+export type UndoRedo = {
+  redo: () => MaybePromise<void>;
+  undo: () => MaybePromise<void>;
+};
 
 /**
  * Types of object that can be added to the undoRedo stack. (UndoRedo | ExecuteUndo)
@@ -52,7 +56,7 @@ export class UndoManager {
    */
   private _undoRedoStack: Array<Entry> = [];
   private readonly _maxSize: number;
-
+  private _isGrouping: boolean = false;
   /**
    * pointer that keeps track of our current position in the undoRedo stack.
    */
@@ -128,6 +132,7 @@ export class UndoManager {
 
     if (redo) {
       this._undoRedoStack.push({
+        isGroup: this._isGrouping,
         undo,
         redo,
       });
@@ -143,7 +148,10 @@ export class UndoManager {
   }
 
   /**
-   * Execute the undo function of the current entry in the undoRedo stack.
+   * Executes the undo function of the current entry in the undoRedo stack.
+   * If the current entry has isGroup equal true it will check the upcoming undo entry.
+   * If the upcoming undo entry also has isGroup equal true the function will recursively call undo
+   * until it runs into a entry that has isGroup equal false.
    */
   async undo() {
     if (!this._canUndo) {
@@ -151,11 +159,19 @@ export class UndoManager {
     }
     const entry = this._undoRedoStack[this._index];
     this._updateIndex(this._index - 1);
-    return entry.undo();
+    const nextEntry = this._undoRedoStack[this._index];
+    entry.undo();
+    //if current entry is isGroup and next entry isGroup then undo the next entry
+    if (entry.isGroup && nextEntry.isGroup) {
+      this.undo();
+    }
   }
 
   /**
-   * Execute the redo function of the current entry in the undoRedo stack.
+   * Executes the redo function of the current entry in the undoRedo stack.
+   * If the current entry has isGroup equal true it will check the upcoming redo entry.
+   * If the upcoming redo entry also has isGroup equal true the function will recursively call redo
+   * until it runs into a entry that has isGroup equal false.
    */
   async redo() {
     if (!this._canRedo) {
@@ -163,6 +179,25 @@ export class UndoManager {
     }
     const entry = this._undoRedoStack[this._index + 1];
     this._updateIndex(this._index + 1);
-    return entry.redo();
+    const nextEntry = this._undoRedoStack[this._index];
+    entry.redo();
+    //if current entry is isGroup and next entry isGroup then undo the next entry
+    if (entry.isGroup && nextEntry.isGroup) {
+      this.redo();
+    }
+  }
+
+  /**
+   * Sets the undo manager to mark all subsequent added entries isGroup to true
+   */
+  startGroup() {
+    this._isGrouping = true;
+  }
+
+  /**
+   * Sets the undo manager to mark all subsequent added entries isGroup to false
+   */
+  endGroup() {
+    this._isGrouping = false;
   }
 }

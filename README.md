@@ -138,12 +138,26 @@ type ExecuteUndo = {
 
 ## <b>undo</b>
 
-Executes the undo function of the current entry in the undoRedo stack.
+Executes the undo function of the current entry in the undoRedo stack. If the current entry has `isGroup` equal `true` it will check the upcoming undo entry-- if it also has `isGroup` equal `true` the function will recursively call `undo` until it runs into a entry that has `isGroup` equal `false`.
 
 ---
 
 ## <b>redo</b>
 
-Executes the redo function of the current entry in the undoRedo stack.
+Executes the redo function of the current entry in the undoRedo stack. If the current entry has `isGroup` equal `true` it will check the upcoming redo entry-- if it also has `isGroup` equal `true` the function will recursively call `redo` until it runs into a entry that has `isGroup` equal `false`.
+
+---
+
+## <b>startGroup</b>
+
+Sets the undo manager to mark all subsequent added entries `isGroup` to `true`
+
+---
+
+---
+
+## <b>endGroup</b>
+
+Sets the undo manager to mark all subsequent added entries `isGroup` to `false`
 
 ---
