@@ -124,4 +124,32 @@ test('grouping undo /redo', () => {
   expect(modifiedValue).to.be.equal(5);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.false;
+  undoManager.undo();
+  undoManager.undo();
+});
+
+test('past zero group tests, subsequent groups', () => {
+  expect(modifiedValue).to.be.equal(0);
+  undoManager.startGroup();
+  undoManager.add(OneRemoveOneExecute);
+  undoManager.add(OneRemoveOneExecute);
+  undoManager.add(OneRemoveOneExecute);
+  undoManager.add(OneRemoveOneExecute);
+  undoManager.endGroup();
+  expect(modifiedValue).to.be.equal(4);
+  undoManager.startGroup();
+  undoManager.add(OneRemoveOneExecute);
+  undoManager.add(OneRemoveOneExecute);
+  undoManager.add(OneRemoveOneExecute);
+  undoManager.add(OneRemoveOneExecute);
+  undoManager.endGroup();
+  expect(modifiedValue).to.be.equal(8);
+  undoManager.undo();
+  expect(modifiedValue).to.be.equal(4);
+  undoManager.undo();
+  expect(modifiedValue).to.be.equal(0);
+  undoManager.redo();
+  expect(modifiedValue).to.be.equal(4);
+  undoManager.redo();
+  expect(modifiedValue).to.be.equal(8);
 });
