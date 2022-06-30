@@ -1,38 +1,34 @@
 export type MaybePromise<T> = T | Promise<T>;
 
 /**
- * @description
  * the object stored in the undoRedo stack
  */
-export type Entry = {
-  redo: () => void | MaybePromise<void>;
-  undo: () => void | MaybePromise<void>;
+type Entry = {
+  redo: () => MaybePromise<void>;
+  undo: () => MaybePromise<void>;
 };
 
 /**
- * @description
  * A type of object that can be added to the undoRedo stack.
  * If this type of object is added, the execute function will be called after added to the stack.
+ * The redo field will be assumed to be the same as execute.
  */
 export type ExecuteUndo = {
-  execute: () => void | MaybePromise<void>;
-  undo: () => void | MaybePromise<void>;
+  execute: () => MaybePromise<void>;
+  undo: () => MaybePromise<void>;
 };
 
 /**
- * @description
- * a type of object that can be added to the undoRedo stack.
+ * A type of object that can be added to the undoRedo stack.
  */
 export type UndoRedo = Entry;
 
 /**
- * @description
  * Types of object that can be added to the undoRedo stack. (UndoRedo | ExecuteUndo)
  */
 export type AddOptions = UndoRedo | ExecuteUndo;
 
 /**
- * @description
  * State object that holds the canUndo and canRedo properties passed to the onChange event listener.
  */
 export type UndoRedoStackState = {
@@ -40,6 +36,11 @@ export type UndoRedoStackState = {
   canRedo: boolean;
 };
 
+/**
+ * The arguments interface for the constructor of UndoManager.
+ * @param maxSize The maximum number of entries in the stack. Default is 10000.
+ * @param onChange A callback function to be called when the stack canUndo or canRedo values change.
+ */
 interface UndoManagerOption {
   maxSize?: number;
   onChange?: (undoRedoStackState: UndoRedoStackState) => void;
@@ -48,13 +49,11 @@ interface UndoManagerOption {
 export class UndoManager {
   /**
    * The list of entries stored in history.
-   * @type {Array.<Entry>}
    */
   private _undoRedoStack: Array<Entry> = [];
   private readonly _maxSize: number;
 
   /**
-   * @description
    * pointer that keeps track of our current position in the undoRedo stack.
    */
   private _index: number = -1;
@@ -65,10 +64,7 @@ export class UndoManager {
 
   /**
    * Constructor for UndoManager
-   * @param {number} maxSize The maximum number of entries in the stack. Default is 10000.
-   * @param {function} onChange A callback function to be called when the stack canUndo or canRedo values change.
-   * @constructor
-   * @memberof UndoManager
+   * @param options The options for the UndoManager. Currently can take a maxSize and onChange callback.
    * @example
    * const undoManager = new UndoManager({ 10, () => {
    *  console.log('undo manager changed');
@@ -83,7 +79,6 @@ export class UndoManager {
   }
 
   /**
-   * @description
    * updates the current pointer (idx) to the undoRedo stack.
    * @param idx The index to update to
    */
@@ -108,28 +103,22 @@ export class UndoManager {
   }
 
   /**
-   * @description
    * Determines if a user can perform the undo operation on the undoRedo stack.
-   * @returns {boolean}
    */
   get canUndo(): boolean {
     return this._canUndo;
   }
 
   /**
-   * @description
    * Determines if a user can perform the redo operation on the undoRedo stack.
-   * @returns {boolean}
    */
   get canRedo(): boolean {
     return this._canRedo;
   }
 
   /**
-   * @description
    * Adds an entry to the undoRedo stack.
-   * @param {AddOptions} options The entry to add to the stack. Can be a UndoRedo or ExecuteUndo object.
-   * @returns {void}
+   * @param options The entry to add to the stack. This can be a UndoRedo or ExecuteUndo object.
    */
   async add(options: AddOptions) {
     this._undoRedoStack.splice(this._index + 1);
@@ -149,14 +138,12 @@ export class UndoManager {
       this._updateIndex(this._index - 1);
     }
     if (execute) {
-      await execute();
+      execute();
     }
   }
 
   /**
-   * @description
-   * execute the undo function of the current index in the undoRedo stack.
-   * @returns {void}
+   * Execute the undo function of the current entry in the undoRedo stack.
    */
   async undo() {
     if (!this._canUndo) {
@@ -164,13 +151,11 @@ export class UndoManager {
     }
     const entry = this._undoRedoStack[this._index];
     this._updateIndex(this._index - 1);
-    return await entry.undo();
+    return entry.undo();
   }
 
   /**
-   * @description
-   * execute the redo function of the current entry in the undoRedo stack.
-   * @returns {void}
+   * Execute the redo function of the current entry in the undoRedo stack.
    */
   async redo() {
     if (!this._canRedo) {
@@ -178,6 +163,6 @@ export class UndoManager {
     }
     const entry = this._undoRedoStack[this._index + 1];
     this._updateIndex(this._index + 1);
-    return await entry.redo();
+    return entry.redo();
   }
 }
