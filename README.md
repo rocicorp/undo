@@ -100,13 +100,13 @@ UnderManagerOptions
 
 ## <b>canUndo</b>
 
-Determines if a user can perform the undo operation on the undoRedo stack.
+Determines if a user can perform the `undo` operation on the undoRedo stack.
 
 ---
 
 ## <b>canRedo</b>
 
-Determines if a user can perform the redo operation on the undoRedo stack.
+Determines if a user can perform the `redo` operation on the undoRedo stack.
 
 ---
 
@@ -138,19 +138,19 @@ type ExecuteUndo = {
 
 ## <b>undo</b>
 
-Executes the undo function of the current entry in the undoRedo stack. If the current entry has `isGroup` equal `true` it will check the upcoming undo entry-- if it also has `isGroup` equal `true` the function will recursively call `undo` until it runs into a entry that has `isGroup` equal `false`.
+Executes the undo function of the current entry in the undoRedo stack. If the current entry has groupId it will check the upcoming undo entry. If the upcoming undo entry also has the same `groupId` the function will recursively call undo until it runs into a entry that has has a different `groupId` or is `undefined`.
 
 ---
 
 ## <b>redo</b>
 
-Executes the redo function of the current entry in the undoRedo stack. If the current entry has `isGroup` equal `true` it will check the upcoming redo entry-- if it also has `isGroup` equal `true` the function will recursively call `redo` until it runs into a entry that has `isGroup` equal `false`.
+Executes the redo function of the current entry in the undoRedo stack. If the current entry has groupId it will check the upcoming redo entry. If the upcoming redo entry also has the same `groupId` the function will recursively call redo until it runs into a entry that has has a different `groupId` or is `undefined`.
 
 ---
 
 ## <b>startGroup</b>
 
-Sets the undo manager to mark all subsequent added entries `isGroup` to `true`
+Sets the undo manager to mark all subsequent added entries `groupId` to internal `groupingId`
 
 ---
 
@@ -158,6 +158,6 @@ Sets the undo manager to mark all subsequent added entries `isGroup` to `true`
 
 ## <b>endGroup</b>
 
-Sets the undo manager to mark all subsequent added entries `isGroup` to `false`
+Sets the undo manager to mark all subsequent added entries `groupId` to `undefined`
 
 ---
