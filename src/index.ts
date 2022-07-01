@@ -63,10 +63,12 @@ export class UndoManager {
   /**
    * pointer that keeps track of our current position in the undoRedo stack.
    */
-  private _index: number = -1;
-  private _canUndo: boolean = false;
-  private _canRedo: boolean = false;
+  private _index = -1;
+  private _canUndo = false;
+  private _canRedo = false;
+
   private _onChange: (undoRedoStackState: UndoRedoStackState) => void =
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     () => {};
 
   /**
@@ -146,6 +148,7 @@ export class UndoManager {
       this._updateIndex(this._index - 1);
     }
     if (execute) {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       execute();
     }
   }
@@ -163,6 +166,7 @@ export class UndoManager {
     const entry = this._undoRedoStack[this._index];
     this._updateIndex(this._index - 1);
     const nextEntry = this._undoRedoStack[this._index];
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     entry.undo();
     //if current entry is isGroup and next entry isGroup then undo the next entry
     if (
@@ -170,6 +174,7 @@ export class UndoManager {
       nextEntry &&
       nextEntry.groupId === entry.groupId
     ) {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       this.undo();
     }
   }
@@ -187,6 +192,7 @@ export class UndoManager {
     const entry = this._undoRedoStack[this._index + 1];
     this._updateIndex(this._index + 1);
     const nextEntry = this._undoRedoStack[this._index + 1];
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     entry.redo();
     //if current entry is isGroup and next entry isGroup then undo the next entry
     if (
@@ -194,6 +200,7 @@ export class UndoManager {
       nextEntry &&
       nextEntry.groupId === entry.groupId
     ) {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       this.redo();
     }
   }
