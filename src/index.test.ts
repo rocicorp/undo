@@ -3,11 +3,10 @@ import {expect} from 'chai';
 import sinon from 'sinon';
 import {UndoManager} from './index.js';
 
-let undoManager: UndoManager;
 let modifiedValue = 0;
-let onChangeSpy = sinon.spy();
+const onChangeSpy = sinon.spy();
 
-undoManager = new UndoManager({
+const undoManager = new UndoManager({
   onChange: onChangeSpy,
 });
 const OneRemoveOneAdd = {
@@ -27,8 +26,8 @@ const OneRemoveOneExecute = {
   },
 };
 test('added redo added execute', () => {
-  undoManager.add(OneRemoveOneAdd);
-  undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneAdd);
+  void undoManager.add(OneRemoveOneExecute);
   expect(modifiedValue).to.be.equal(1);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.false;
@@ -36,11 +35,11 @@ test('added redo added execute', () => {
 });
 
 test('undo two entries', () => {
-  undoManager.undo();
+  void undoManager.undo();
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.true;
   expect(modifiedValue).to.be.equal(0);
-  undoManager.undo();
+  void undoManager.undo();
   expect(modifiedValue).to.be.equal(-1);
   expect(undoManager.canUndo).to.be.false;
   expect(undoManager.canRedo).to.be.true;
@@ -48,7 +47,7 @@ test('undo two entries', () => {
 });
 
 test('add one more entry', () => {
-  undoManager.add(OneRemoveOneAdd);
+  void undoManager.add(OneRemoveOneAdd);
   expect(modifiedValue).to.be.equal(-1);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.false;
@@ -56,7 +55,7 @@ test('add one more entry', () => {
 });
 
 test('add one more entry should have no changes', () => {
-  undoManager.add(OneRemoveOneAdd);
+  void undoManager.add(OneRemoveOneAdd);
   expect(modifiedValue).to.be.equal(-1);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.false;
@@ -64,8 +63,8 @@ test('add one more entry should have no changes', () => {
 });
 
 test('redo two items in stack that can not be redone', () => {
-  undoManager.redo();
-  undoManager.redo();
+  void undoManager.redo();
+  void undoManager.redo();
   expect(modifiedValue).to.be.equal(-1);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.false;
@@ -73,12 +72,12 @@ test('redo two items in stack that can not be redone', () => {
 });
 
 test('add / redo / undo', () => {
-  undoManager.add(OneRemoveOneAdd);
-  undoManager.undo();
-  undoManager.undo();
-  undoManager.undo();
-  undoManager.redo();
-  undoManager.redo();
+  void undoManager.add(OneRemoveOneAdd);
+  void undoManager.undo();
+  void undoManager.undo();
+  void undoManager.undo();
+  void undoManager.redo();
+  void undoManager.redo();
 
   expect(modifiedValue).to.be.equal(-2);
   expect(undoManager.canUndo).to.be.true;
@@ -88,68 +87,68 @@ test('add / redo / undo', () => {
 
 test('grouping undo /redo', () => {
   // reset stack to start
-  undoManager.undo();
-  undoManager.undo();
+  void undoManager.undo();
+  void undoManager.undo();
   expect(undoManager.canUndo).to.be.false;
   expect(undoManager.canRedo).to.be.true;
   //reset modified Value
   modifiedValue = 0;
-  undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneExecute);
   expect(modifiedValue).to.be.equal(1);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.false;
 
   undoManager.startGroup();
-  undoManager.add(OneRemoveOneExecute);
-  undoManager.add(OneRemoveOneExecute);
-  undoManager.add(OneRemoveOneExecute);
-  undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneExecute);
   undoManager.endGroup();
   expect(modifiedValue).to.be.equal(5);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.false;
-  undoManager.undo();
+  void undoManager.undo();
   expect(modifiedValue).to.be.equal(1);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.true;
-  undoManager.undo();
+  void undoManager.undo();
   expect(modifiedValue).to.be.equal(0);
   expect(undoManager.canUndo).to.be.false;
   expect(undoManager.canRedo).to.be.true;
-  undoManager.redo();
+  void undoManager.redo();
   expect(modifiedValue).to.be.equal(1);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.true;
-  undoManager.redo();
+  void undoManager.redo();
   expect(modifiedValue).to.be.equal(5);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.false;
-  undoManager.undo();
-  undoManager.undo();
+  void undoManager.undo();
+  void undoManager.undo();
 });
 
 test('past zero group tests, subsequent groups', () => {
   expect(modifiedValue).to.be.equal(0);
   undoManager.startGroup();
-  undoManager.add(OneRemoveOneExecute);
-  undoManager.add(OneRemoveOneExecute);
-  undoManager.add(OneRemoveOneExecute);
-  undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneExecute);
   undoManager.endGroup();
   expect(modifiedValue).to.be.equal(4);
   undoManager.startGroup();
-  undoManager.add(OneRemoveOneExecute);
-  undoManager.add(OneRemoveOneExecute);
-  undoManager.add(OneRemoveOneExecute);
-  undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneExecute);
+  void undoManager.add(OneRemoveOneExecute);
   undoManager.endGroup();
   expect(modifiedValue).to.be.equal(8);
-  undoManager.undo();
+  void undoManager.undo();
   expect(modifiedValue).to.be.equal(4);
-  undoManager.undo();
+  void undoManager.undo();
   expect(modifiedValue).to.be.equal(0);
-  undoManager.redo();
+  void undoManager.redo();
   expect(modifiedValue).to.be.equal(4);
-  undoManager.redo();
+  void undoManager.redo();
   expect(modifiedValue).to.be.equal(8);
 });
