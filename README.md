@@ -150,7 +150,7 @@ Executes the redo function of the current entry in the undoRedo stack. If the cu
 
 ## <b>startGroup</b>
 
-Sets the undo manager to mark all subsequent added entries `groupId` to internal `groupingId`
+Sets the undo manager to add  `groupId` to all subsequent entries. Sets the `isGrouping` internal state of the stack to `true`
 
 ---
 
@@ -158,6 +158,6 @@ Sets the undo manager to mark all subsequent added entries `groupId` to internal
 
 ## <b>endGroup</b>
 
-Sets the undo manager to mark all subsequent added entries `groupId` to `undefined`
+Sets the undo manager to mark all subsequent added entries `groupId` to `undefined`. Sets the `isGrouping` internal state of the stack to `false`
 
 ---

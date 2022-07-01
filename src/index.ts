@@ -1,12 +1,12 @@
 export type MaybePromise<T> = T | Promise<T>;
 
 /**
- * the object stored in the undoRedo stack
+ * The object stored in the undoRedo stack.
  */
 type Entry = {
   groupId: number | undefined;
-  redo: () => MaybePromise<void>;
   undo: () => MaybePromise<void>;
+  redo: () => MaybePromise<void>;
 };
 
 /**
@@ -23,8 +23,8 @@ export type ExecuteUndo = {
  * A type of object that can be added to the undoRedo stack.
  */
 export type UndoRedo = {
-  redo: () => MaybePromise<void>;
   undo: () => MaybePromise<void>;
+  redo: () => MaybePromise<void>;
 };
 
 /**
@@ -43,7 +43,7 @@ export type UndoRedoStackState = {
 /**
  * The arguments interface for the constructor of UndoManager.
  * @param maxSize The maximum number of entries in the stack. Default is 10000.
- * @param onChange A callback function to be called when the stack canUndo or canRedo values change.
+ * @param onChange A callback function to be called when the UndoRedoStackState values change.
  */
 interface UndoManagerOption {
   maxSize?: number;
@@ -56,24 +56,26 @@ export class UndoManager {
    */
   private _undoRedoStack: Array<Entry> = [];
   private readonly _maxSize: number;
-  // current groupId to assign to entries
-  private _groupingId: number | undefined = undefined;
-  // internal tracker of groupId
+  // State that tells you if the stack is currently grouping entries
+  private _isGrouping = false;
   private _lastGroupId = 0;
-  /**
-   * pointer that keeps track of our current position in the undoRedo stack.
-   */
+  
+  // Pointer that keeps track of our current position in the undoRedo stack.
   private _index = -1;
-  private _canUndo = false;
-  private _canRedo = false;
 
-  private _onChange: (undoRedoStackState: UndoRedoStackState) => void =
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    () => {};
+  // keep track of previous stack state
+  private _prevUndoRedoStackState: UndoRedoStackState = {
+    canUndo: this.canUndo,
+    canRedo: this.canRedo,
+  };
+
+  private _onChange:
+    | ((undoRedoStackState: UndoRedoStackState) => void)
+    | undefined = undefined;
 
   /**
    * Constructor for UndoManager
-   * @param options The options for the UndoManager. Currently can take a maxSize and onChange callback.
+   * @param options The options for UndoManager can take a maxSize and onChange callback.
    * @example
    * const undoManager = new UndoManager({ 10, () => {
    *  console.log('undo manager changed');
@@ -88,26 +90,24 @@ export class UndoManager {
   }
 
   /**
-   * updates the current pointer (idx) to the undoRedo stack.
+   * Updates the current pointer (idx) to the undoRedo stack.
    * @param idx The index to update to
    */
   private _updateIndex(idx: number): void {
     this._index = idx;
-    const cu = this._index >= 0;
-    if (cu !== this._canUndo) {
-      this._canUndo = cu;
-      this._onChange?.({
-        canUndo: this._canUndo,
-        canRedo: this._canRedo,
-      });
-    }
-    const cr = this._index < this._undoRedoStack.length - 1;
-    if (cr !== this._canRedo) {
-      this._canRedo = cr;
-      this._onChange?.({
-        canUndo: this._canUndo,
-        canRedo: this._canRedo,
-      });
+
+    const currUndoRedoStackState: UndoRedoStackState = {
+      canUndo: this.canUndo,
+      canRedo: this.canRedo,
+    };
+
+    // If the stack state has changed, call the onChange callback and update the previous state. 
+    if (
+      this._prevUndoRedoStackState.canRedo !== currUndoRedoStackState.canRedo ||
+      this._prevUndoRedoStackState.canUndo !== currUndoRedoStackState.canUndo
+    ) {
+      this._onChange?.(currUndoRedoStackState);
+      this._prevUndoRedoStackState = currUndoRedoStackState;
     }
   }
 
@@ -115,19 +115,19 @@ export class UndoManager {
    * Determines if a user can perform the undo operation on the undoRedo stack.
    */
   get canUndo(): boolean {
-    return this._canUndo;
+    return this._index >= 0;
   }
 
   /**
    * Determines if a user can perform the redo operation on the undoRedo stack.
    */
   get canRedo(): boolean {
-    return this._canRedo;
+    return this._index < this._undoRedoStack.length - 1;
   }
 
   /**
    * Adds an entry to the undoRedo stack.
-   * @param options The entry to add to the stack. This can be a UndoRedo or ExecuteUndo object.
+   * @param options The object can be an UndoRedo or ExecuteUndo object.
    */
   async add(options: AddOptions) {
     this._undoRedoStack.splice(this._index + 1);
@@ -135,9 +135,10 @@ export class UndoManager {
     const {execute} = options as Partial<ExecuteUndo>;
     const {redo = execute} = options as Partial<UndoRedo>;
 
+    // Conditional is here because complier can't determine that redo is always available.
     if (redo) {
       this._undoRedoStack.push({
-        groupId: this._groupingId,
+        groupId: this._isGrouping ? this._lastGroupId : undefined,
         undo,
         redo,
       });
@@ -160,7 +161,7 @@ export class UndoManager {
    * until it runs into a entry that has has a different `groupId` or is `undefined`.
    */
   async undo() {
-    if (!this._canUndo) {
+    if (!this.canUndo) {
       return;
     }
     const entry = this._undoRedoStack[this._index];
@@ -186,7 +187,7 @@ export class UndoManager {
    * until it runs into a entry that has has a different `groupId` or is `undefined`.
    */
   async redo() {
-    if (!this._canRedo) {
+    if (!this.canRedo) {
       return;
     }
     const entry = this._undoRedoStack[this._index + 1];
@@ -209,7 +210,7 @@ export class UndoManager {
    * Sets the undo manager to mark all subsequent added entries `groupId` to internal `groupingId`
    */
   startGroup() {
-    this._groupingId = this._lastGroupId;
+    this._isGrouping = true;
     this._lastGroupId = this._lastGroupId + 1;
   }
 
@@ -217,6 +218,6 @@ export class UndoManager {
    * Sets the undo manager to mark all subsequent added entries `groupId` to `undefined`
    */
   endGroup() {
-    this._groupingId = undefined;
+    this._isGrouping = false;
   }
 }
