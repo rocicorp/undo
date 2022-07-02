@@ -59,7 +59,7 @@ export class UndoManager {
   // State that tells you if the stack is currently grouping entries
   private _isGrouping = false;
   private _lastGroupId = 0;
-  
+
   // Pointer that keeps track of our current position in the undoRedo stack.
   private _index = -1;
 
@@ -101,7 +101,7 @@ export class UndoManager {
       canRedo: this.canRedo,
     };
 
-    // If the stack state has changed, call the onChange callback and update the previous state. 
+    // If the stack state has changed, call the onChange callback and update the previous state.
     if (
       this._prevUndoRedoStackState.canRedo !== currUndoRedoStackState.canRedo ||
       this._prevUndoRedoStackState.canUndo !== currUndoRedoStackState.canUndo

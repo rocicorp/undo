@@ -1,6 +1,6 @@
 {
   "name": "@rocicorp/undo",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Undo Redo Manager",
   "homepage": "https://github.com/rocicorp/undo",
   "repository": "github:rocicorp/undo",
