@@ -51,7 +51,7 @@ test('add one more entry', () => {
   expect(modifiedValue).to.be.equal(-1);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.false;
-  expect(onChangeSpy.callCount).to.be.equal(5);
+  expect(onChangeSpy.callCount).to.be.equal(4);
 });
 
 test('add one more entry should have no changes', () => {
@@ -59,7 +59,7 @@ test('add one more entry should have no changes', () => {
   expect(modifiedValue).to.be.equal(-1);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.false;
-  expect(onChangeSpy.callCount).to.be.equal(5);
+  expect(onChangeSpy.callCount).to.be.equal(4);
 });
 
 test('redo two items in stack that can not be redone', () => {
@@ -68,7 +68,7 @@ test('redo two items in stack that can not be redone', () => {
   expect(modifiedValue).to.be.equal(-1);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.false;
-  expect(onChangeSpy.callCount).to.be.equal(5);
+  expect(onChangeSpy.callCount).to.be.equal(4);
 });
 
 test('add / redo / undo', () => {
@@ -82,7 +82,7 @@ test('add / redo / undo', () => {
   expect(modifiedValue).to.be.equal(-2);
   expect(undoManager.canUndo).to.be.true;
   expect(undoManager.canRedo).to.be.true;
-  expect(onChangeSpy.callCount).to.be.equal(8);
+  expect(onChangeSpy.callCount).to.be.equal(7);
 });
 
 test('grouping undo /redo', () => {
@@ -151,4 +151,11 @@ test('past zero group tests, subsequent groups', () => {
   expect(modifiedValue).to.be.equal(4);
   void undoManager.redo();
   expect(modifiedValue).to.be.equal(8);
+});
+
+test('start group twice should throw error', () => {
+  undoManager.startGroup();
+  expect(() => undoManager.startGroup()).to.throw(
+    'UndoManager is already grouping.',
+  );
 });
