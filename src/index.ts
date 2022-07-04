@@ -215,7 +215,7 @@ export class UndoManager {
    */
   startGroup() {
     if (this._isGrouping) {
-      throw Error('UndoManager is already grouping.');
+      throw new Error('UndoManager is already grouping.');
     }
     this._isGrouping = true;
     this._lastGroupID = this._lastGroupID + 1;

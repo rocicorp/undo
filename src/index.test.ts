@@ -152,3 +152,10 @@ test('past zero group tests, subsequent groups', () => {
   void undoManager.redo();
   expect(modifiedValue).to.be.equal(8);
 });
+
+test('start group twice should throw error', () => {
+  undoManager.startGroup();
+  expect(() => undoManager.startGroup()).to.throw(
+    'UndoManager is already grouping.',
+  );
+});
