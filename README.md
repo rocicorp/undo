@@ -138,24 +138,24 @@ type ExecuteUndo = {
 
 ## <b>undo</b>
 
-Executes the undo function of the current entry in the undoRedo stack. If the current entry has groupId it will check the upcoming undo entry. If the upcoming undo entry also has the same `groupId` the function will recursively call undo until it runs into a entry that has has a different `groupId` or is `undefined`.
+Executes the undo function of the current entry in the undoRedo stack. If the current entry has groupID it will check the upcoming undo entry. If the upcoming undo entry also has the same `groupID` the function will recursively call undo until it runs into a entry that has has a different `groupID` or is `undefined`.
 
 ---
 
 ## <b>redo</b>
 
-Executes the redo function of the current entry in the undoRedo stack. If the current entry has groupId it will check the upcoming redo entry. If the upcoming redo entry also has the same `groupId` the function will recursively call redo until it runs into a entry that has has a different `groupId` or is `undefined`.
+Executes the redo function of the current entry in the undoRedo stack. If the current entry has groupID it will check the upcoming redo entry. If the upcoming redo entry also has the same `groupID` the function will recursively call redo until it runs into a entry that has has a different `groupID` or is `undefined`.
 
 ---
 
 ## <b>startGroup</b>
 
-Sets the undo manager to add `groupId` to all subsequent entries. Sets the `isGrouping` internal state of the stack to `true`
+Sets the undo manager to add `groupID` to all subsequent entries. Sets the `isGrouping` internal state of the stack to `true`
 
 ---
 
 ## <b>endGroup</b>
 
-Sets the undo manager to mark all subsequent added entries `groupId` to `undefined`. Sets the `isGrouping` internal state of the stack to `false`
+Sets the undo manager to mark all subsequent added entries `groupID` to `undefined`. Sets the `isGrouping` internal state of the stack to `false`
 
 ---

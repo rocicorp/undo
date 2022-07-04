@@ -4,7 +4,7 @@ export type MaybePromise<T> = T | Promise<T>;
  * The object stored in the undoRedo stack.
  */
 type Entry = {
-  groupId: number | undefined;
+  groupID: number | undefined;
   undo: () => MaybePromise<void>;
   redo: () => MaybePromise<void>;
 };
@@ -33,6 +33,12 @@ export type UndoRedo = {
 export type AddOptions = UndoRedo | ExecuteUndo;
 
 /**
+ * Type of function that will be called on an UndoRedoStatckState change.
+ */
+export type OnChangeHandlerType =
+  | ((undoRedoStackState: UndoRedoStackState) => void)
+  | undefined;
+/**
  * State object that holds the canUndo and canRedo properties passed to the onChange event listener.
  */
 export type UndoRedoStackState = {
@@ -56,9 +62,9 @@ export class UndoManager {
    */
   private _undoRedoStack: Array<Entry> = [];
   private readonly _maxSize: number;
-  // State that tells you if the stack is currently grouping entries
+  // State that tells you if the UndoManager is currently grouping entries.
   private _isGrouping = false;
-  private _lastGroupId = 0;
+  private _lastGroupID = 0;
 
   // Pointer that keeps track of our current position in the undoRedo stack.
   private _index = -1;
@@ -69,9 +75,7 @@ export class UndoManager {
     canRedo: this.canRedo,
   };
 
-  private _onChange:
-    | ((undoRedoStackState: UndoRedoStackState) => void)
-    | undefined = undefined;
+  private _onChange: OnChangeHandlerType = undefined;
 
   /**
    * Constructor for UndoManager
@@ -138,7 +142,7 @@ export class UndoManager {
     // Conditional is here because complier can't determine that redo is always available.
     if (redo) {
       this._undoRedoStack.push({
-        groupId: this._isGrouping ? this._lastGroupId : undefined,
+        groupID: this._isGrouping ? this._lastGroupID : undefined,
         undo,
         redo,
       });
@@ -156,9 +160,9 @@ export class UndoManager {
 
   /**
    * Executes the undo function of the current entry in the undoRedo stack.
-   * If the current entry has groupId it will check the upcoming undo entry.
-   * If the upcoming undo entry also has the same `groupId` the function will recursively call undo
-   * until it runs into a entry that has has a different `groupId` or is `undefined`.
+   * If the current entry has groupID it will check the upcoming undo entry.
+   * If the upcoming undo entry also has the same `groupID` the function will recursively call undo
+   * until it runs into a entry that has has a different `groupID` or is `undefined`.
    */
   async undo() {
     if (!this.canUndo) {
@@ -171,9 +175,9 @@ export class UndoManager {
     entry.undo();
     //if current entry is isGroup and next entry isGroup then undo the next entry
     if (
-      entry.groupId !== undefined &&
+      entry.groupID !== undefined &&
       nextEntry &&
-      nextEntry.groupId === entry.groupId
+      nextEntry.groupID === entry.groupID
     ) {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       this.undo();
@@ -182,9 +186,9 @@ export class UndoManager {
 
   /**
    * Executes the redo function of the current entry in the undoRedo stack.
-   * If the current entry has a groupId it will check the upcoming redo entry.
-   * If the upcoming redo entry also has the same `groupId` the function will recursively call redo
-   * until it runs into a entry that has has a different `groupId` or is `undefined`.
+   * If the current entry has a groupID it will check the upcoming redo entry.
+   * If the upcoming redo entry also has the same `groupID` the function will recursively call redo
+   * until it runs into a entry that has has a different `groupID` or is `undefined`.
    */
   async redo() {
     if (!this.canRedo) {
@@ -197,9 +201,9 @@ export class UndoManager {
     entry.redo();
     //if current entry is isGroup and next entry isGroup then undo the next entry
     if (
-      entry.groupId !== undefined &&
+      entry.groupID !== undefined &&
       nextEntry &&
-      nextEntry.groupId === entry.groupId
+      nextEntry.groupID === entry.groupID
     ) {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       this.redo();
@@ -207,15 +211,18 @@ export class UndoManager {
   }
 
   /**
-   * Sets the undo manager to mark all subsequent added entries `groupId` to internal `groupingId`
+   * Sets the undo manager to mark all subsequent added entries `groupID` to internal `lastGroupID`
    */
   startGroup() {
+    if (this._isGrouping) {
+      throw Error('UndoManager is already grouping.');
+    }
     this._isGrouping = true;
-    this._lastGroupId = this._lastGroupId + 1;
+    this._lastGroupID = this._lastGroupID + 1;
   }
 
   /**
-   * Sets the undo manager to mark all subsequent added entries `groupId` to `undefined`
+   * Sets the undo manager to mark all subsequent added entries `groupID` to `undefined`
    */
   endGroup() {
     this._isGrouping = false;
