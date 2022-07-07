@@ -49,7 +49,6 @@ describe('UndoManager', () => {
     execute: () => {
       return new Promise<void>((_, reject) => {
         setTimeout(() => {
-          console.log('foo');
           reject(new Error('Async error in execute'));
         }, 1);
       });
@@ -76,6 +75,25 @@ describe('UndoManager', () => {
       return new Promise<void>((_, reject) => {
         setTimeout(() => {
           reject(new Error('Async error in undo'));
+        }, 1);
+      });
+    },
+  };
+
+  const OneRemoveOneExecuteAsync = {
+    execute: () => {
+      return new Promise<void>((resolve, _) => {
+        setTimeout(() => {
+          modifiedValue++;
+          resolve(undefined);
+        }, 1);
+      });
+    },
+    undo: () => {
+      return new Promise<void>((resolve, _) => {
+        setTimeout(() => {
+          modifiedValue--;
+          resolve(undefined);
         }, 1);
       });
     },
@@ -138,6 +156,24 @@ describe('UndoManager', () => {
     expect(undoManager.canUndo).to.be.true;
     expect(undoManager.canRedo).to.be.false;
     expect(onChangeSpy.callCount).to.be.equal(4);
+  });
+
+  it('add / undo / redo async', async () => {
+    await undoManager.add(OneRemoveOneExecuteAsync);
+    await undoManager.add(OneRemoveOneExecuteAsync);
+    expect(modifiedValue).to.be.equal(2);
+    await undoManager.undo();
+    await undoManager.undo();
+    expect(modifiedValue).to.be.equal(0);
+    expect(undoManager.canUndo).to.be.false;
+    expect(undoManager.canRedo).to.be.true;
+    expect(onChangeSpy.callCount).to.be.equal(3);
+    await undoManager.redo();
+    await undoManager.redo();
+    expect(modifiedValue).to.be.equal(2);
+    expect(undoManager.canUndo).to.be.true;
+    expect(undoManager.canRedo).to.be.false;
+    expect(onChangeSpy.callCount).to.be.equal(5);
   });
 
   it('grouping undo /redo', async () => {
