@@ -153,8 +153,7 @@ export class UndoManager {
       this._updateIndex(this._index - 1);
     }
     if (execute) {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      execute();
+      await execute();
     }
   }
 
@@ -171,16 +170,14 @@ export class UndoManager {
     const entry = this._undoRedoStack[this._index];
     this._updateIndex(this._index - 1);
     const nextEntry = this._undoRedoStack[this._index];
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    entry.undo();
+    await entry.undo();
     //if current entry is isGroup and next entry isGroup then undo the next entry
     if (
       entry.groupID !== undefined &&
       nextEntry &&
       nextEntry.groupID === entry.groupID
     ) {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      this.undo();
+      await this.undo();
     }
   }
 
@@ -197,16 +194,14 @@ export class UndoManager {
     const entry = this._undoRedoStack[this._index + 1];
     this._updateIndex(this._index + 1);
     const nextEntry = this._undoRedoStack[this._index + 1];
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    entry.redo();
+    await entry.redo();
     //if current entry is isGroup and next entry isGroup then undo the next entry
     if (
       entry.groupID !== undefined &&
       nextEntry &&
       nextEntry.groupID === entry.groupID
     ) {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      this.redo();
+      await this.redo();
     }
   }
 

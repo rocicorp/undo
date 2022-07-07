@@ -1,11 +1,11 @@
 {
   "name": "@rocicorp/undo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Undo Redo Manager",
   "homepage": "https://github.com/rocicorp/undo",
   "repository": "github:rocicorp/undo",
   "scripts": {
-    "test": "mocha --ui=tdd out/*.test.js",
+    "test": "mocha --ui=bdd out/*.test.js",
     "pretest": "npm run build",
     "format": "prettier --write 'src/**/*.{js,jsx,json,ts,tsx,html,css,md}' '*.{cjs,js,jsx,json,ts,tsx,html,css,md}'",
     "check-format": "prettier --check 'src/**/*.{js,jsx,json,ts,tsx,html,css,md}' '*.{cjs,js,jsx,json,ts,tsx,html,css,md}'",
