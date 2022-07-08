@@ -62,6 +62,24 @@ describe('UndoManager', () => {
     },
   };
 
+  const ThrowErrorAsyncRedo = {
+    redo: () => {
+      return new Promise<void>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Async error in redo'));
+        }, 1);
+      });
+    },
+    undo: () => {
+      return new Promise<void>((resolve, _) => {
+        setTimeout(() => {
+          modifiedValue--;
+          resolve(undefined);
+        }, 1);
+      });
+    },
+  };
+
   const ThrowErrorUndoAsync = {
     execute: () => {
       return new Promise<void>((resolve, _) => {
@@ -285,5 +303,23 @@ describe('UndoManager', () => {
       throw new Error('expected error to be thrown');
     }
     expect(expectedError.message).to.be.equal('Async error in undo');
+  });
+
+  it('await should catch error redo async', async () => {
+    let expectedError: Error | undefined = undefined;
+    await undoManager.add(ThrowErrorAsyncRedo);
+    await undoManager.undo();
+    expect(modifiedValue).to.be.equal(-1);
+    try {
+      await undoManager.redo();
+    } catch (e) {
+      expectedError = e as Error;
+    }
+    expect(expectedError).to.be.not.undefined;
+
+    if (!expectedError) {
+      throw new Error('expected error to be thrown');
+    }
+    expect(expectedError.message).to.be.equal('Async error in redo');
   });
 });
