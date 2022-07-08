@@ -4,158 +4,322 @@ import sinon from 'sinon';
 import {UndoManager} from './index.js';
 
 let modifiedValue = 0;
+let undoManager: UndoManager;
 const onChangeSpy = sinon.spy();
 
-const undoManager = new UndoManager({
-  onChange: onChangeSpy,
-});
-const OneRemoveOneAdd = {
-  redo: () => {
-    modifiedValue++;
-  },
-  undo: () => {
-    modifiedValue--;
-  },
-};
-const OneRemoveOneExecute = {
-  execute: () => {
-    modifiedValue++;
-  },
-  undo: () => {
-    modifiedValue--;
-  },
-};
-test('added redo added execute', () => {
-  void undoManager.add(OneRemoveOneAdd);
-  void undoManager.add(OneRemoveOneExecute);
-  expect(modifiedValue).to.be.equal(1);
-  expect(undoManager.canUndo).to.be.true;
-  expect(undoManager.canRedo).to.be.false;
-  expect(onChangeSpy.callCount).to.be.equal(1);
-});
+describe('UndoManager', () => {
+  beforeEach(() => {
+    modifiedValue = 0;
+    undoManager = new UndoManager({
+      onChange: onChangeSpy,
+    });
+  });
 
-test('undo two entries', () => {
-  void undoManager.undo();
-  expect(undoManager.canUndo).to.be.true;
-  expect(undoManager.canRedo).to.be.true;
-  expect(modifiedValue).to.be.equal(0);
-  void undoManager.undo();
-  expect(modifiedValue).to.be.equal(-1);
-  expect(undoManager.canUndo).to.be.false;
-  expect(undoManager.canRedo).to.be.true;
-  expect(onChangeSpy.callCount).to.be.equal(3);
-});
+  afterEach(() => {
+    onChangeSpy.resetHistory();
+  });
 
-test('add one more entry', () => {
-  void undoManager.add(OneRemoveOneAdd);
-  expect(modifiedValue).to.be.equal(-1);
-  expect(undoManager.canUndo).to.be.true;
-  expect(undoManager.canRedo).to.be.false;
-  expect(onChangeSpy.callCount).to.be.equal(4);
-});
+  const OneRemoveOneAdd = {
+    redo: () => {
+      modifiedValue++;
+    },
+    undo: () => {
+      modifiedValue--;
+    },
+  };
+  const OneRemoveOneExecute = {
+    execute: () => {
+      modifiedValue++;
+    },
+    undo: () => {
+      modifiedValue--;
+    },
+  };
 
-test('add one more entry should have no changes', () => {
-  void undoManager.add(OneRemoveOneAdd);
-  expect(modifiedValue).to.be.equal(-1);
-  expect(undoManager.canUndo).to.be.true;
-  expect(undoManager.canRedo).to.be.false;
-  expect(onChangeSpy.callCount).to.be.equal(4);
-});
+  const ThrowError = {
+    execute: () => {
+      throw new Error('Error in execute.');
+    },
+    undo: () => {
+      throw new Error('Error in undo.');
+    },
+  };
 
-test('redo two items in stack that can not be redone', () => {
-  void undoManager.redo();
-  void undoManager.redo();
-  expect(modifiedValue).to.be.equal(-1);
-  expect(undoManager.canUndo).to.be.true;
-  expect(undoManager.canRedo).to.be.false;
-  expect(onChangeSpy.callCount).to.be.equal(4);
-});
+  const ThrowErrorAsync = {
+    execute: () => {
+      return new Promise<void>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Async error in execute'));
+        }, 1);
+      });
+    },
+    undo: () => {
+      return new Promise<void>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Async error in undo'));
+        }, 1);
+      });
+    },
+  };
 
-test('add / redo / undo', () => {
-  void undoManager.add(OneRemoveOneAdd);
-  void undoManager.undo();
-  void undoManager.undo();
-  void undoManager.undo();
-  void undoManager.redo();
-  void undoManager.redo();
+  const ThrowErrorAsyncRedo = {
+    redo: () => {
+      return new Promise<void>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Async error in redo'));
+        }, 1);
+      });
+    },
+    undo: () => {
+      return new Promise<void>((resolve, _) => {
+        setTimeout(() => {
+          modifiedValue--;
+          resolve(undefined);
+        }, 1);
+      });
+    },
+  };
 
-  expect(modifiedValue).to.be.equal(-2);
-  expect(undoManager.canUndo).to.be.true;
-  expect(undoManager.canRedo).to.be.true;
-  expect(onChangeSpy.callCount).to.be.equal(7);
-});
+  const ThrowErrorUndoAsync = {
+    execute: () => {
+      return new Promise<void>((resolve, _) => {
+        setTimeout(() => {
+          modifiedValue++;
+          resolve(undefined);
+        }, 1);
+      });
+    },
+    undo: () => {
+      return new Promise<void>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Async error in undo'));
+        }, 1);
+      });
+    },
+  };
 
-test('grouping undo /redo', () => {
-  // reset stack to start
-  void undoManager.undo();
-  void undoManager.undo();
-  expect(undoManager.canUndo).to.be.false;
-  expect(undoManager.canRedo).to.be.true;
-  //reset modified Value
-  modifiedValue = 0;
-  void undoManager.add(OneRemoveOneExecute);
-  expect(modifiedValue).to.be.equal(1);
-  expect(undoManager.canUndo).to.be.true;
-  expect(undoManager.canRedo).to.be.false;
+  const OneRemoveOneExecuteAsync = {
+    execute: () => {
+      return new Promise<void>((resolve, _) => {
+        setTimeout(() => {
+          modifiedValue++;
+          resolve(undefined);
+        }, 1);
+      });
+    },
+    undo: () => {
+      return new Promise<void>((resolve, _) => {
+        setTimeout(() => {
+          modifiedValue--;
+          resolve(undefined);
+        }, 1);
+      });
+    },
+  };
 
-  undoManager.startGroup();
-  void undoManager.add(OneRemoveOneExecute);
-  void undoManager.add(OneRemoveOneExecute);
-  void undoManager.add(OneRemoveOneExecute);
-  void undoManager.add(OneRemoveOneExecute);
-  undoManager.endGroup();
-  expect(modifiedValue).to.be.equal(5);
-  expect(undoManager.canUndo).to.be.true;
-  expect(undoManager.canRedo).to.be.false;
-  void undoManager.undo();
-  expect(modifiedValue).to.be.equal(1);
-  expect(undoManager.canUndo).to.be.true;
-  expect(undoManager.canRedo).to.be.true;
-  void undoManager.undo();
-  expect(modifiedValue).to.be.equal(0);
-  expect(undoManager.canUndo).to.be.false;
-  expect(undoManager.canRedo).to.be.true;
-  void undoManager.redo();
-  expect(modifiedValue).to.be.equal(1);
-  expect(undoManager.canUndo).to.be.true;
-  expect(undoManager.canRedo).to.be.true;
-  void undoManager.redo();
-  expect(modifiedValue).to.be.equal(5);
-  expect(undoManager.canUndo).to.be.true;
-  expect(undoManager.canRedo).to.be.false;
-  void undoManager.undo();
-  void undoManager.undo();
-});
+  it('added redo added execute', async () => {
+    await undoManager.add(OneRemoveOneAdd);
+    await undoManager.add(OneRemoveOneExecute);
+    expect(modifiedValue).to.be.equal(1);
+    expect(undoManager.canUndo).to.be.true;
+    expect(undoManager.canRedo).to.be.false;
+    expect(onChangeSpy.callCount).to.be.equal(1);
+  });
 
-test('past zero group tests, subsequent groups', () => {
-  expect(modifiedValue).to.be.equal(0);
-  undoManager.startGroup();
-  void undoManager.add(OneRemoveOneExecute);
-  void undoManager.add(OneRemoveOneExecute);
-  void undoManager.add(OneRemoveOneExecute);
-  void undoManager.add(OneRemoveOneExecute);
-  undoManager.endGroup();
-  expect(modifiedValue).to.be.equal(4);
-  undoManager.startGroup();
-  void undoManager.add(OneRemoveOneExecute);
-  void undoManager.add(OneRemoveOneExecute);
-  void undoManager.add(OneRemoveOneExecute);
-  void undoManager.add(OneRemoveOneExecute);
-  undoManager.endGroup();
-  expect(modifiedValue).to.be.equal(8);
-  void undoManager.undo();
-  expect(modifiedValue).to.be.equal(4);
-  void undoManager.undo();
-  expect(modifiedValue).to.be.equal(0);
-  void undoManager.redo();
-  expect(modifiedValue).to.be.equal(4);
-  void undoManager.redo();
-  expect(modifiedValue).to.be.equal(8);
-});
+  it('undo two entries', async () => {
+    await undoManager.add(OneRemoveOneAdd);
+    await undoManager.add(OneRemoveOneExecute);
+    expect(modifiedValue).to.be.equal(1);
+    expect(undoManager.canUndo).to.be.true;
+    expect(undoManager.canRedo).to.be.false;
+    expect(onChangeSpy.callCount).to.be.equal(1);
+    await undoManager.undo();
+    expect(undoManager.canUndo).to.be.true;
+    expect(undoManager.canRedo).to.be.true;
+    expect(modifiedValue).to.be.equal(0);
+    await undoManager.undo();
+    expect(modifiedValue).to.be.equal(-1);
+    expect(undoManager.canUndo).to.be.false;
+    expect(undoManager.canRedo).to.be.true;
+    expect(onChangeSpy.callCount).to.be.equal(3);
+  });
 
-test('start group twice should throw error', () => {
-  undoManager.startGroup();
-  expect(() => undoManager.startGroup()).to.throw(
-    'UndoManager is already grouping.',
-  );
+  it('add one more entry check for add of equal', async () => {
+    await undoManager.add(OneRemoveOneAdd);
+    await undoManager.add(OneRemoveOneExecute);
+    await undoManager.undo();
+    await undoManager.undo();
+    await undoManager.add(OneRemoveOneAdd);
+    expect(modifiedValue).to.be.equal(-1);
+    expect(undoManager.canUndo).to.be.true;
+    expect(undoManager.canRedo).to.be.false;
+    expect(onChangeSpy.callCount).to.be.equal(4);
+    await undoManager.add(OneRemoveOneAdd);
+    expect(modifiedValue).to.be.equal(-1);
+    expect(undoManager.canUndo).to.be.true;
+    expect(undoManager.canRedo).to.be.false;
+    expect(onChangeSpy.callCount).to.be.equal(4);
+  });
+
+  it('redo two items in stack that can not be redone', async () => {
+    await undoManager.add(OneRemoveOneAdd);
+    await undoManager.add(OneRemoveOneExecute);
+    await undoManager.undo();
+    await undoManager.undo();
+    await undoManager.add(OneRemoveOneAdd);
+    await undoManager.add(OneRemoveOneAdd);
+    await undoManager.redo();
+    await undoManager.redo();
+    expect(modifiedValue).to.be.equal(-1);
+    expect(undoManager.canUndo).to.be.true;
+    expect(undoManager.canRedo).to.be.false;
+    expect(onChangeSpy.callCount).to.be.equal(4);
+  });
+
+  it('add / undo / redo async', async () => {
+    await undoManager.add(OneRemoveOneExecuteAsync);
+    await undoManager.add(OneRemoveOneExecuteAsync);
+    expect(modifiedValue).to.be.equal(2);
+    await undoManager.undo();
+    await undoManager.undo();
+    expect(modifiedValue).to.be.equal(0);
+    expect(undoManager.canUndo).to.be.false;
+    expect(undoManager.canRedo).to.be.true;
+    expect(onChangeSpy.callCount).to.be.equal(3);
+    await undoManager.redo();
+    await undoManager.redo();
+    expect(modifiedValue).to.be.equal(2);
+    expect(undoManager.canUndo).to.be.true;
+    expect(undoManager.canRedo).to.be.false;
+    expect(onChangeSpy.callCount).to.be.equal(5);
+  });
+
+  it('grouping undo /redo', async () => {
+    await undoManager.add(OneRemoveOneExecute);
+    expect(modifiedValue).to.be.equal(1);
+    expect(undoManager.canUndo).to.be.true;
+    expect(undoManager.canRedo).to.be.false;
+    undoManager.startGroup();
+    await undoManager.add(OneRemoveOneExecute);
+    await undoManager.add(OneRemoveOneExecute);
+    await undoManager.add(OneRemoveOneExecute);
+    await undoManager.add(OneRemoveOneExecute);
+    undoManager.endGroup();
+    expect(modifiedValue).to.be.equal(5);
+    expect(undoManager.canUndo).to.be.true;
+    expect(undoManager.canRedo).to.be.false;
+    await undoManager.undo();
+    expect(modifiedValue).to.be.equal(1);
+    expect(undoManager.canUndo).to.be.true;
+    expect(undoManager.canRedo).to.be.true;
+    await undoManager.undo();
+    expect(modifiedValue).to.be.equal(0);
+    expect(undoManager.canUndo).to.be.false;
+    expect(undoManager.canRedo).to.be.true;
+    await undoManager.redo();
+    expect(modifiedValue).to.be.equal(1);
+    expect(undoManager.canUndo).to.be.true;
+    expect(undoManager.canRedo).to.be.true;
+    await undoManager.redo();
+    expect(modifiedValue).to.be.equal(5);
+    expect(undoManager.canUndo).to.be.true;
+    expect(undoManager.canRedo).to.be.false;
+    await undoManager.undo();
+    await undoManager.undo();
+  });
+
+  it('past zero group tests, subsequent groups', async () => {
+    expect(modifiedValue).to.be.equal(0);
+    undoManager.startGroup();
+    await undoManager.add(OneRemoveOneExecute);
+    await undoManager.add(OneRemoveOneExecute);
+    await undoManager.add(OneRemoveOneExecute);
+    await undoManager.add(OneRemoveOneExecute);
+    undoManager.endGroup();
+    expect(modifiedValue).to.be.equal(4);
+    undoManager.startGroup();
+    await undoManager.add(OneRemoveOneExecute);
+    await undoManager.add(OneRemoveOneExecute);
+    await undoManager.add(OneRemoveOneExecute);
+    await undoManager.add(OneRemoveOneExecute);
+    undoManager.endGroup();
+    expect(modifiedValue).to.be.equal(8);
+    await undoManager.undo();
+    expect(modifiedValue).to.be.equal(4);
+    await undoManager.undo();
+    expect(modifiedValue).to.be.equal(0);
+    await undoManager.redo();
+    expect(modifiedValue).to.be.equal(4);
+    await undoManager.redo();
+    expect(modifiedValue).to.be.equal(8);
+  });
+
+  it('start group twice should throw error', () => {
+    undoManager.startGroup();
+    expect(() => undoManager.startGroup()).to.throw(
+      'UndoManager is already grouping.',
+    );
+  });
+
+  it('await should catch error on execute', async () => {
+    let expectedError: Error | undefined = undefined;
+    try {
+      await undoManager.add(ThrowError);
+    } catch (e) {
+      expectedError = e as Error;
+    }
+    expect(expectedError).to.be.not.undefined;
+    if (!expectedError) {
+      throw new Error('expected error to be thrown');
+    }
+    expect(expectedError.message).to.be.equal('Error in execute.');
+  });
+
+  it('await should catch error execute async', async () => {
+    let expectedError: Error | undefined = undefined;
+    try {
+      await undoManager.add(ThrowErrorAsync);
+    } catch (e) {
+      expectedError = e as Error;
+    }
+    expect(expectedError).to.be.not.undefined;
+    if (!expectedError) {
+      throw new Error('expected error to be thrown');
+    }
+    expect(expectedError.message).to.be.equal('Async error in execute');
+  });
+
+  it('await should catch error undo async', async () => {
+    let expectedError: Error | undefined = undefined;
+    await undoManager.add(ThrowErrorUndoAsync);
+    try {
+      await undoManager.undo();
+    } catch (e) {
+      expectedError = e as Error;
+    }
+    expect(expectedError).to.be.not.undefined;
+
+    if (!expectedError) {
+      throw new Error('expected error to be thrown');
+    }
+    expect(expectedError.message).to.be.equal('Async error in undo');
+  });
+
+  it('await should catch error redo async', async () => {
+    let expectedError: Error | undefined = undefined;
+    await undoManager.add(ThrowErrorAsyncRedo);
+    await undoManager.undo();
+    expect(modifiedValue).to.be.equal(-1);
+    try {
+      await undoManager.redo();
+    } catch (e) {
+      expectedError = e as Error;
+    }
+    expect(expectedError).to.be.not.undefined;
+
+    if (!expectedError) {
+      throw new Error('expected error to be thrown');
+    }
+    expect(expectedError.message).to.be.equal('Async error in redo');
+  });
 });
