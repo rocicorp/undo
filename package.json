@@ -28,6 +28,7 @@
   },
   "type": "module",
   "types": "out/index.d.ts",
+  "main": "out/index.js",
   "exports": {
     ".": "./out/index.js"
   },
