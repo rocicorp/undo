@@ -322,4 +322,170 @@ describe('UndoManager', () => {
     }
     expect(expectedError.message).to.be.equal('Async error in redo');
   });
+
+  describe('addListeners / removeListeners', () => {
+    let target: EventTarget;
+    const fireKey = (
+      key: string,
+      opts: {ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean; altKey?: boolean} = {},
+    ) => {
+      const event = Object.assign(new Event('keydown'), {
+        key,
+        ctrlKey: opts.ctrlKey ?? false,
+        metaKey: opts.metaKey ?? false,
+        shiftKey: opts.shiftKey ?? false,
+        altKey: opts.altKey ?? false,
+        preventDefault: () => undefined,
+      });
+      target.dispatchEvent(event);
+    };
+
+    beforeEach(() => {
+      target = new EventTarget();
+      modifiedValue = 0;
+      // enableShortcuts must be true for these tests
+      undoManager = new UndoManager({onChange: onChangeSpy, enableShortcuts: true});
+    });
+
+    it('Ctrl+Z triggers undo', async () => {
+      await undoManager.add(OneRemoveOneAdd);
+      undoManager.addListeners(target);
+      fireKey('z', {ctrlKey: true});
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(-1);
+      undoManager.removeListeners(target);
+    });
+
+    it('Ctrl+Shift+Z triggers redo', async () => {
+      await undoManager.add(OneRemoveOneAdd);
+      await undoManager.undo();
+      undoManager.addListeners(target);
+      fireKey('z', {ctrlKey: true, shiftKey: true});
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(0);
+      undoManager.removeListeners(target);
+    });
+
+    it('Ctrl+Y triggers redo', async () => {
+      await undoManager.add(OneRemoveOneAdd);
+      await undoManager.undo();
+      undoManager.addListeners(target);
+      fireKey('y', {ctrlKey: true});
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(0);
+      undoManager.removeListeners(target);
+    });
+
+    it('Cmd+Z (metaKey) triggers undo', async () => {
+      await undoManager.add(OneRemoveOneAdd);
+      undoManager.addListeners(target);
+      fireKey('z', {metaKey: true});
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(-1);
+      undoManager.removeListeners(target);
+    });
+
+    it('Cmd+Shift+Z (metaKey) triggers redo', async () => {
+      await undoManager.add(OneRemoveOneAdd);
+      await undoManager.undo();
+      undoManager.addListeners(target);
+      fireKey('z', {metaKey: true, shiftKey: true});
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(0);
+      undoManager.removeListeners(target);
+    });
+
+    it('removeListeners stops handling events', async () => {
+      await undoManager.add(OneRemoveOneAdd);
+      undoManager.addListeners(target);
+      undoManager.removeListeners(target);
+      fireKey('z', {ctrlKey: true});
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(0);
+    });
+
+    it('does not trigger without modifier key', async () => {
+      await undoManager.add(OneRemoveOneAdd);
+      undoManager.addListeners(target);
+      fireKey('z');
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(0);
+      undoManager.removeListeners(target);
+    });
+
+    it('enableShortcuts: false disables shortcut handling', async () => {
+      undoManager = new UndoManager({enableShortcuts: false});
+      await undoManager.add(OneRemoveOneAdd);
+      undoManager.addListeners(target);
+      fireKey('z', {ctrlKey: true});
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(0);
+      undoManager.removeListeners(target);
+    });
+
+    it('custom undo/redo keys (other platform)', async () => {
+      undoManager = new UndoManager({
+        enableShortcuts: true,
+        shortcuts: {
+          other: {
+            undo: {key: 'u'},
+            redo: {key: 'r'},
+          },
+        },
+      });
+      await undoManager.add(OneRemoveOneAdd);
+      undoManager.addListeners(target);
+      fireKey('u', {ctrlKey: true});
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(-1);
+      fireKey('r', {ctrlKey: true});
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(0);
+      undoManager.removeListeners(target);
+    });
+
+    it('custom undo/redo keys (mac)', async () => {
+      undoManager = new UndoManager({
+        enableShortcuts: true,
+        shortcuts: {
+          mac: {
+            undo: {key: 'u'},
+            redo: {key: 'r'},
+          },
+        },
+      });
+      await undoManager.add(OneRemoveOneAdd);
+      undoManager.addListeners(target);
+      fireKey('u', {metaKey: true});
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(-1);
+      fireKey('r', {metaKey: true});
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(0);
+      undoManager.removeListeners(target);
+    });
+
+    it('custom redo with shift binding', async () => {
+      undoManager = new UndoManager({
+        enableShortcuts: true,
+        shortcuts: {
+          other: {
+            redo: {key: 'z', shiftKey: true},
+          },
+        },
+      });
+      await undoManager.add(OneRemoveOneAdd);
+      await undoManager.undo();
+      undoManager.addListeners(target);
+      // Ctrl+Y should NOT trigger redo (not in custom config)
+      fireKey('y', {ctrlKey: true});
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(-1);
+      // Ctrl+Shift+Z should trigger redo
+      fireKey('z', {ctrlKey: true, shiftKey: true});
+      await new Promise(r => setTimeout(r, 10));
+      expect(modifiedValue).to.equal(0);
+      undoManager.removeListeners(target);
+    });
+  });
 });

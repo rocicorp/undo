@@ -47,13 +47,71 @@ export type UndoRedoStackState = {
 };
 
 /**
+ * A single keyboard shortcut binding, using the same modifier key names as
+ * the browser's `KeyboardEvent` (`shiftKey`, `altKey`, `ctrlKey`, `metaKey`).
+ * Only the modifiers you specify are checked; unspecified ones default to `false`.
+ */
+export type KeyBinding = Pick<
+  KeyboardEventInit,
+  'key' | 'shiftKey' | 'altKey' | 'ctrlKey' | 'metaKey'
+> & {key: string};
+
+/**
+ * Keyboard shortcut key mapping for a platform.
+ * Each action accepts a single binding or an array of bindings.
+ */
+export type ShortcutMap = {
+  /** Binding(s) for undo. Default: `{key: 'z'}`. */
+  undo?: KeyBinding | KeyBinding[];
+  /**
+   * Binding(s) for redo.
+   * Default: `[{key: 'y'}, {key: 'z', shiftKey: true}]`.
+   */
+  redo?: KeyBinding | KeyBinding[];
+};
+
+/**
+ * Per-platform shortcut key overrides passed to UndoManagerOption.
+ */
+export type ShortcutOptions = {
+  /** Shortcut keys on macOS (uses the Meta/Cmd modifier). */
+  mac?: ShortcutMap;
+  /** Shortcut keys on all other platforms (uses the Ctrl modifier). */
+  other?: ShortcutMap;
+};
+
+/**
  * The arguments interface for the constructor of UndoManager.
  * @param maxSize The maximum number of entries in the stack. Default is 10000.
  * @param onChange A callback function to be called when the UndoRedoStackState values change.
+ * @param enableShortcuts Whether keyboard shortcut handling is active when addListeners is called. Default is true.
+ * @param shortcuts Per-platform overrides for the default shortcut keys.
  */
 interface UndoManagerOption {
   maxSize?: number;
   onChange?: (undoRedoStackState: UndoRedoStackState) => void;
+  /**
+   * Whether keyboard shortcut handling is active when `addListeners` is called.
+   * Default is `true`.
+   */
+  enableShortcuts?: boolean;
+  /** Override the default keyboard shortcut keys per platform. */
+  shortcuts?: ShortcutOptions;
+}
+
+function toArray<T>(value: T | T[]): T[] {
+  return Array.isArray(value) ? value : [value];
+}
+
+function matchesBinding(ke: KeyboardEvent, bindings: KeyBinding[]): boolean {
+  return bindings.some(
+    b =>
+      ke.key === b.key &&
+      (b.shiftKey ?? false) === ke.shiftKey &&
+      (b.altKey ?? false) === ke.altKey &&
+      (b.ctrlKey === undefined || b.ctrlKey === ke.ctrlKey) &&
+      (b.metaKey === undefined || b.metaKey === ke.metaKey),
+  );
 }
 
 export class UndoManager {
@@ -76,6 +134,8 @@ export class UndoManager {
   };
 
   private _onChange: OnChangeHandlerType = undefined;
+  private _enableShortcuts: boolean;
+  private _shortcuts: ShortcutOptions | undefined;
 
   /**
    * Constructor for UndoManager
@@ -86,8 +146,10 @@ export class UndoManager {
    * }});
    */
   constructor(options: UndoManagerOption = {}) {
-    const {maxSize = 10_000, onChange} = options;
+    const {maxSize = 10_000, onChange, enableShortcuts = false, shortcuts} = options;
     this._maxSize = maxSize;
+    this._enableShortcuts = enableShortcuts;
+    this._shortcuts = shortcuts;
     if (onChange) {
       this._onChange = onChange;
     }
@@ -203,6 +265,61 @@ export class UndoManager {
     ) {
       await this.redo();
     }
+  }
+
+  /**
+   * Handles keydown events to trigger undo/redo via keyboard shortcuts.
+   */
+  private _handleKeydown = (e: Event): void => {
+    if (!this._enableShortcuts) return;
+    const ke = e as KeyboardEvent;
+
+    // Check both independently so each uses its own shortcut config.
+    if (ke.metaKey) {
+      if (this._tryShortcut(e, ke, this._shortcuts?.mac)) return;
+    }
+    if (ke.ctrlKey) {
+      this._tryShortcut(e, ke, this._shortcuts?.other);
+    }
+  };
+
+  private _tryShortcut(
+    e: Event,
+    ke: KeyboardEvent,
+    map: ShortcutMap | undefined,
+  ): boolean {
+    const undoBindings = toArray(map?.undo ?? {key: 'z'});
+    const redoBindings = toArray(
+      map?.redo ?? [{key: 'y'}, {key: 'z', shiftKey: true}],
+    );
+
+    if (matchesBinding(ke, undoBindings)) {
+      e.preventDefault();
+      void this.undo();
+      return true;
+    }
+    if (matchesBinding(ke, redoBindings)) {
+      e.preventDefault();
+      void this.redo();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Adds keydown event listeners to the given EventTarget for undo/redo keyboard shortcuts.
+   * @param target The EventTarget (e.g. window) to attach listeners to.
+   */
+  addListeners(target: EventTarget): void {
+    target.addEventListener('keydown', this._handleKeydown);
+  }
+
+  /**
+   * Removes keydown event listeners previously added via `addListeners`.
+   * @param target The EventTarget (e.g. window) to remove listeners from.
+   */
+  removeListeners(target: EventTarget): void {
+    target.removeEventListener('keydown', this._handleKeydown);
   }
 
   /**

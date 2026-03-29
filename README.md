@@ -83,10 +83,12 @@ Constructor for UndoManager
 
 UnderManagerOptions
 
-| Param    | Type                                                   | Description                                                                       |
-| -------- | ------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| maxSize  | <code>Object</code>                                    | The maximum number of entries in the stack. Default is 10000.                     |
-| onChange | <code>(undoManager: UndoRedoStackState) => void</code> | A callback function to be called when the stack canUndo or canRedo values change. |
+| Param           | Type                                                   | Description                                                                                        |
+| --------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| maxSize         | <code>number</code>                                    | The maximum number of entries in the stack. Default is 10000.                                      |
+| onChange        | <code>(undoManager: UndoRedoStackState) => void</code> | A callback function to be called when the stack canUndo or canRedo values change.                  |
+| enableShortcuts | <code>boolean</code>                                   | Whether keyboard shortcut handling is active when `addListeners` is called. Default is `false`.    |
+| shortcuts       | <code>ShortcutOptions</code>                           | Per-platform overrides for the default shortcut keys. Only used when `enableShortcuts` is `true`.  |
 
 **Example**
 
@@ -145,6 +147,70 @@ Executes the undo function of the current entry in the undoRedo stack. If the cu
 ## <b>redo</b>
 
 Executes the redo function of the current entry in the undoRedo stack. If the current entry has groupID it will check the upcoming redo entry. If the upcoming redo entry also has the same `groupID` the function will recursively call redo until it runs into a entry that has has a different `groupID` or is `undefined`.
+
+---
+
+## <b>addListeners</b>
+
+Attaches keydown event listeners to the given `EventTarget` for undo/redo keyboard shortcuts. Requires `enableShortcuts: true` in the constructor.
+
+Default shortcuts (using `ctrlKey` on Windows/Linux, `metaKey` on Mac):
+
+| Action | Keys |
+| ------ | ---- |
+| Undo   | Ctrl+Z / Cmd+Z |
+| Redo   | Ctrl+Y / Cmd+Y or Ctrl+Shift+Z / Cmd+Shift+Z |
+
+| Param  | Type                     | Description                                        |
+| ------ | ------------------------ | -------------------------------------------------- |
+| target | <code>EventTarget</code> | The target to attach listeners to (e.g. `window`). |
+
+**Basic example**
+
+```ts
+const undoManager = new UndoManager({ enableShortcuts: true });
+undoManager.addListeners(window);
+```
+
+**Custom key bindings**
+
+Key bindings are configured per-platform via `shortcuts.mac` and `shortcuts.other`. Each action accepts a `KeyBinding` (a subset of `KeyboardEventInit`: `key`, `shiftKey`, `altKey`, `ctrlKey`, `metaKey`) or an array of them.
+
+```ts
+const undoManager = new UndoManager({
+  enableShortcuts: true,
+  shortcuts: {
+    // Ctrl modifier (Windows / Linux)
+    other: {
+      undo: { key: 'z' },
+      redo: [{ key: 'y' }, { key: 'z', shiftKey: true }],
+    },
+    // Cmd modifier (Mac)
+    mac: {
+      undo: { key: 'z' },
+      redo: [{ key: 'z', shiftKey: true }], // only Cmd+Shift+Z, no Cmd+Y
+    },
+  },
+});
+
+undoManager.addListeners(window);
+```
+
+---
+
+## <b>removeListeners</b>
+
+Removes keydown event listeners previously added via `addListeners`.
+
+| Param  | Type                     | Description                                            |
+| ------ | ------------------------ | ------------------------------------------------------ |
+| target | <code>EventTarget</code> | The target to remove listeners from (e.g. `window`). |
+
+**Example**
+
+```ts
+undoManager.removeListeners(window);
+```
 
 ---
 
