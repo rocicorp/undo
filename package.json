@@ -6,17 +6,19 @@
   "repository": "github:rocicorp/undo",
   "scripts": {
     "test": "mocha --ui=bdd out/*.test.js",
-    "pretest": "npm run build",
+    "pretest": "pnpm run build",
     "format": "prettier --write 'src/**/*.{js,jsx,json,ts,tsx,html,css,md}' '*.{cjs,js,jsx,json,ts,tsx,html,css,md}'",
     "check-format": "prettier --check 'src/**/*.{js,jsx,json,ts,tsx,html,css,md}' '*.{cjs,js,jsx,json,ts,tsx,html,css,md}'",
     "lint": "eslint --ext .ts,.tsx,.js,.jsx src/",
     "build": "rm -rf out && tsc",
-    "prepack": "npm run lint && npm run test "
+    "prepack": "pnpm run lint && pnpm run test"
   },
   "devDependencies": {
+    "@sinonjs/fake-timers": "9.1.2",
     "@types/chai": "^4.3.0",
     "@types/mocha": "^9.1.0",
     "@types/sinon": "^10.0.11",
+    "@types/sinonjs__fake-timers": "8.1.2",
     "@typescript-eslint/eslint-plugin": "^5.15.0",
     "@typescript-eslint/parser": "^5.15.0",
     "chai": "^4.3.6",
@@ -35,5 +37,6 @@
   "files": [
     "out/*",
     "!out/*.test.*"
-  ]
+  ],
+  "packageManager": "pnpm@11.1.2"
 }
